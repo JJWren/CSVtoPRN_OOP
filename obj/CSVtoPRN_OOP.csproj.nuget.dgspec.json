@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "E:\\Wrenpo\\Wrenpo's Folder\\GitHub\\Repositories\\CSVtoPRN_OOP\\CSVtoPRN_OOP.csproj": {}
+    "C:\\Users\\Wrenpo\\Documents\\GitHub\\Repositories\\CSVtoPRN_OOP\\CSVtoPRN_OOP.csproj": {}
   },
   "projects": {
-    "E:\\Wrenpo\\Wrenpo's Folder\\GitHub\\Repositories\\CSVtoPRN_OOP\\CSVtoPRN_OOP.csproj": {
+    "C:\\Users\\Wrenpo\\Documents\\GitHub\\Repositories\\CSVtoPRN_OOP\\CSVtoPRN_OOP.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\Wrenpo\\Wrenpo's Folder\\GitHub\\Repositories\\CSVtoPRN_OOP\\CSVtoPRN_OOP.csproj",
+        "projectUniqueName": "C:\\Users\\Wrenpo\\Documents\\GitHub\\Repositories\\CSVtoPRN_OOP\\CSVtoPRN_OOP.csproj",
         "projectName": "CSVtoPRN_OOP",
-        "projectPath": "E:\\Wrenpo\\Wrenpo's Folder\\GitHub\\Repositories\\CSVtoPRN_OOP\\CSVtoPRN_OOP.csproj",
+        "projectPath": "C:\\Users\\Wrenpo\\Documents\\GitHub\\Repositories\\CSVtoPRN_OOP\\CSVtoPRN_OOP.csproj",
         "packagesPath": "C:\\Users\\Wrenpo\\.nuget\\packages\\",
-        "outputPath": "E:\\Wrenpo\\Wrenpo's Folder\\GitHub\\Repositories\\CSVtoPRN_OOP\\obj\\",
+        "outputPath": "C:\\Users\\Wrenpo\\Documents\\GitHub\\Repositories\\CSVtoPRN_OOP\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\Wrenpo\\AppData\\Roaming\\NuGet\\NuGet.Config"

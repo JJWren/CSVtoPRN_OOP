@@ -11,13 +11,13 @@ namespace CSVtoPRN_OOP
         static void Main(string[] args)
         {
             // Get the user input filepath - put into string for splitting
-            Console.WriteLine("Please enter in a valid directory for CSV import...\n\nExample - 'E:\\Wrenpo\\Wrenpo's Folder\\GitHub\\Repositories\\CSVtoPRN_OOP'): \n");
+            Console.WriteLine("Please enter in a valid directory for CSV import...\n\nExample - 'E:\\Wrenpo\\My Documents\\GitHub\\Repositories\\CSVtoPRN_OOP'): \n");
             string CSVDirectory = Console.ReadLine();
             if (CSVDirectory.Length - 1 != '\\')
             {
                 CSVDirectory += '\\';
             }
-            Console.WriteLine("Please enter the filename you wish to import...\n(Example - 'good import.txt': ");
+            Console.WriteLine("Please enter the filename you wish to import...\nExample - 'good import.txt':\n");
             string CSVFilename = Console.ReadLine();
             string CSVFullPath = CSVDirectory + CSVFilename;
 
@@ -216,18 +216,30 @@ namespace CSVtoPRN_OOP
                 }
                 // END OF FINAL STRING COMBINATION
             }
-            string CurrDT = DateTime.Now.ToString("yyyyMMdd");
 
-            string NewFilePath = $"{CSVDirectory}ConvertedCSV{CurrDT}.prn";
-            if (!File.Exists(NewFilePath))
+            // REIMPLEMENTED THE FILE CREATION
+            // string CurrDT = DateTime.Now.ToString("yyyyMMdd");
+
+            // string NewFilePath = $"{CSVDirectory}ConvertedCSV{CurrDT}.prn";
+            // if (!File.Exists(NewFilePath))
+            // {
+            //     // Create a file to write to.
+            //     using (StreamWriter sw = File.CreateText(NewFilePath))
+            //     {
+            //         sw.WriteLine($"{FinalString}");
+            //     }
+            // }
+
+            // Create new prn file from converted string
+            // Formatted name
+            string NewFilePath = $"{CSVDirectory}ConvertedCSV.prn";
+            // Fixes formatted name if the file already exists >> (Directory\ConvertCSV.prn will become Directory\ConvertedCSV (1).prn, etc)
+            string FinalFilePath = GetUniqueFilename(NewFilePath);
+            // Create the file and use the FinalString for the text
+            using (StreamWriter sw = File.CreateText(FinalFilePath))
             {
-                // Create a file to write to.
-                using (StreamWriter sw = File.CreateText(NewFilePath))
-                {
-                    sw.WriteLine($"{FinalString}");
-                }
+                sw.WriteLine($"{FinalString}");
             }
-            // Eventually need to add protective measure if file does exist (try making file with added "_1", "_2", etc)
             // END OF MAIN
         }
 
@@ -264,6 +276,26 @@ namespace CSVtoPRN_OOP
                 Header += $"APPLY MONEY ORDER COMMISION\nN\n  0\n";
             }
             return Header;
+        }
+
+        static string GetUniqueFilename(string fullPath)
+        {
+            if (!Path.IsPathRooted(fullPath))
+                fullPath = Path.GetFullPath(fullPath);
+            if (File.Exists(fullPath))
+            {
+                String filename = Path.GetFileName(fullPath);
+                String path = fullPath.Substring(0, fullPath.Length - filename.Length);
+                String filenameWOExt = Path.GetFileNameWithoutExtension(fullPath);
+                String ext = Path.GetExtension(fullPath);
+                int n = 1;
+                do
+                {
+                    fullPath = Path.Combine(path, String.Format("{0} ({1}){2}", filenameWOExt, (n++), ext));
+                }
+                while (File.Exists(fullPath));
+            }
+            return fullPath;
         }
     }
 
