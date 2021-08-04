@@ -99,7 +99,7 @@ namespace CSVtoPRN_OOP
             // foreach (PurchaseOrder order in PurchaseOrders)
             // {
             //     CultureInfo provider = CultureInfo.InvariantCulture;
-            //     string fDate = DateTime.ParseExact(order.Date, "yyMMdd", provider).ToString("yy/MM/dd");
+            //     string fDate = DateTime.ParseExact(order.Date, "yyMMdd", provider).ToString("MM/dd/yy");
             //     // testing to make sure orders are in list of orders
             //     Console.WriteLine($"ID: {order.ID}\tDate: {fDate}\tStoreNum: {order.StoreNum}\tPrice: {order.Price}\tFee: {order.Fee}\tAlcoholic?: {order.IsAlcoholic.ToString()}");
             // }
@@ -147,7 +147,7 @@ namespace CSVtoPRN_OOP
                     List<PurchaseOrder> AllAlcStoreOrdersForDate = new List<PurchaseOrder>();
                     foreach (PurchaseOrder po in PurchaseOrders)
                     {
-                        if (po.StoreNum == store)
+                        if (po.StoreNum == store && po.Date == StrDate)
                         {
                             AllStoreOrdersForDate.Add(po);
                             if (po.IsAlcoholic)
@@ -206,9 +206,9 @@ namespace CSVtoPRN_OOP
                                 SumOfOtherPOs += 1;
                             }
                         }
-                        double AlcSumTimesAlcVal = SumOfAlcPOs * AlcVal;
-                        double OtherSumTimesOtherVal = SumOfOtherPOs * OtherVal;
-                        double TotalSum = AlcSumTimesAlcVal + OtherSumTimesOtherVal;
+                        double AlcSumTimesAlcVal = Math.Round((SumOfAlcPOs * AlcVal), 2, MidpointRounding.AwayFromZero);
+                        double OtherSumTimesOtherVal = Math.Round((SumOfOtherPOs * OtherVal), 2, MidpointRounding.AwayFromZero);
+                        double TotalSum = AlcSumTimesAlcVal + Math.Round(OtherSumTimesOtherVal, 2, MidpointRounding.AwayFromZero);
                         FinalString += $"FA:\t1\t{store.StoreNum}\t99\t4520\t{TotalSum}\n";
                         AllStoreSums += TotalSum;
                     }
@@ -227,6 +227,7 @@ namespace CSVtoPRN_OOP
                     sw.WriteLine($"{FinalString}");
                 }
             }
+            // Eventually need to add protective measure if file does exist (try making file with added "_1", "_2", etc)
             // END OF MAIN
         }
 
