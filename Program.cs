@@ -11,7 +11,7 @@ namespace CSVtoPRN_OOP
         static void Main(string[] args)
         {
             // Get the user input filepath - put into string for splitting
-            Console.WriteLine("Please enter in a valid directory for CSV import...\n(Example - 'E:\\Wrenpo\\Wrenpo's Folder\\GitHub\\Repositories\\CSVtoPRN_OOP'): ");
+            Console.WriteLine("Please enter in a valid directory for CSV import...\n\nExample - 'E:\\Wrenpo\\Wrenpo's Folder\\GitHub\\Repositories\\CSVtoPRN_OOP'): \n");
             string CSVDirectory = Console.ReadLine();
             if (CSVDirectory.Length - 1 != '\\')
             {
@@ -26,8 +26,6 @@ namespace CSVtoPRN_OOP
 
             // Break the string down and output contents
             List<string> CSVAllLines = System.IO.File.ReadAllLines(CSVFullPath).ToList();
-
-            System.Console.WriteLine("Contents of CSV:\n");
 
             // Lists for grouping each column into separate lists, maintaining order
             List<string> StoreNum = new List<string>();
@@ -88,9 +86,13 @@ namespace CSVtoPRN_OOP
                 int storenum = Int32.Parse((StoreNum[i]));
                 double price = double.Parse(Price[i]);
                 double fee = double.Parse(Fee[i]);
-                // PurchaseOrder(string id, string date, double price, double fee)
-                PurchaseOrder order = new PurchaseOrder(ID[i], Date[i], storenum, price, fee);
-                PurchaseOrders.Add(order);
+
+                if (price > 0)
+                {
+                    // PurchaseOrder(string id, string date, double price, double fee)
+                    PurchaseOrder order = new PurchaseOrder(ID[i], Date[i], storenum, price, fee);
+                    PurchaseOrders.Add(order);
+                }
             }
 
             // // TROUBLESHOOTING: Checking ListOfOrder data
@@ -126,6 +128,9 @@ namespace CSVtoPRN_OOP
             // {
             //     Console.WriteLine(date);
             // }
+
+            // Final String for putting into new file:
+            string FinalString = "";
 
             // Match Unique Dates to PO for grouping
             foreach (int date in UniqueDates)
@@ -163,13 +168,11 @@ namespace CSVtoPRN_OOP
                 }
 
                 // START OF GATHERING FINAL STRING TO PUT IN NEW FILE
-                string FinalString = "";
-
                 if (StoresWithAnySales.Count() > 0)
                 {
                     if (StoresWithAlcSales.Count() > 0)
                     {
-                        FinalString += SectionHeader(StrDate, true) + "\n";
+                        FinalString += SectionHeader(StrDate, true);
                         double DateAlcTotal = 0;
                         foreach (Store store in StoresWithAlcSales)
                         {
@@ -213,6 +216,17 @@ namespace CSVtoPRN_OOP
                 }
                 // END OF FINAL STRING COMBINATION
             }
+            string CurrDT = DateTime.Now.ToString("yyyyMMdd");
+
+            string NewFilePath = $"{CSVDirectory}ConvertedCSV{CurrDT}.prn";
+            if (!File.Exists(NewFilePath))
+            {
+                // Create a file to write to.
+                using (StreamWriter sw = File.CreateText(NewFilePath))
+                {
+                    sw.WriteLine($"{FinalString}");
+                }
+            }
             // END OF MAIN
         }
 
@@ -238,7 +252,7 @@ namespace CSVtoPRN_OOP
         static string SectionHeader(string date, bool alcohol)
         {
             CultureInfo provider = CultureInfo.InvariantCulture;
-            string FormatDate = DateTime.ParseExact(date, "yyMMdd", provider).ToString("yy/MM/dd");
+            string FormatDate = DateTime.ParseExact(date, "yyMMdd", provider).ToString("MM/dd/yy");
             string Header = $"0001\n0001\n0090\nJE\n{FormatDate}\n";
             if (alcohol == true)
             {
