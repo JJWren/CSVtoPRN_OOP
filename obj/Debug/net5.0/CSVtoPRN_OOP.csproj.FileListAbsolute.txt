@@ -1,0 +1,16 @@
+E:\Wrenpo\Wrenpo's Folder\GitHub\Repositories\CSVtoPRN_OOP\bin\Debug\net5.0\CSVtoPRN_OOP.exe
+E:\Wrenpo\Wrenpo's Folder\GitHub\Repositories\CSVtoPRN_OOP\bin\Debug\net5.0\CSVtoPRN_OOP.deps.json
+E:\Wrenpo\Wrenpo's Folder\GitHub\Repositories\CSVtoPRN_OOP\bin\Debug\net5.0\CSVtoPRN_OOP.runtimeconfig.json
+E:\Wrenpo\Wrenpo's Folder\GitHub\Repositories\CSVtoPRN_OOP\bin\Debug\net5.0\CSVtoPRN_OOP.runtimeconfig.dev.json
+E:\Wrenpo\Wrenpo's Folder\GitHub\Repositories\CSVtoPRN_OOP\bin\Debug\net5.0\CSVtoPRN_OOP.dll
+E:\Wrenpo\Wrenpo's Folder\GitHub\Repositories\CSVtoPRN_OOP\bin\Debug\net5.0\ref\CSVtoPRN_OOP.dll
+E:\Wrenpo\Wrenpo's Folder\GitHub\Repositories\CSVtoPRN_OOP\bin\Debug\net5.0\CSVtoPRN_OOP.pdb
+E:\Wrenpo\Wrenpo's Folder\GitHub\Repositories\CSVtoPRN_OOP\obj\Debug\net5.0\CSVtoPRN_OOP.csproj.AssemblyReference.cache
+E:\Wrenpo\Wrenpo's Folder\GitHub\Repositories\CSVtoPRN_OOP\obj\Debug\net5.0\CSVtoPRN_OOP.GeneratedMSBuildEditorConfig.editorconfig
+E:\Wrenpo\Wrenpo's Folder\GitHub\Repositories\CSVtoPRN_OOP\obj\Debug\net5.0\CSVtoPRN_OOP.AssemblyInfoInputs.cache
+E:\Wrenpo\Wrenpo's Folder\GitHub\Repositories\CSVtoPRN_OOP\obj\Debug\net5.0\CSVtoPRN_OOP.AssemblyInfo.cs
+E:\Wrenpo\Wrenpo's Folder\GitHub\Repositories\CSVtoPRN_OOP\obj\Debug\net5.0\CSVtoPRN_OOP.csproj.CoreCompileInputs.cache
+E:\Wrenpo\Wrenpo's Folder\GitHub\Repositories\CSVtoPRN_OOP\obj\Debug\net5.0\CSVtoPRN_OOP.dll
+E:\Wrenpo\Wrenpo's Folder\GitHub\Repositories\CSVtoPRN_OOP\obj\Debug\net5.0\ref\CSVtoPRN_OOP.dll
+E:\Wrenpo\Wrenpo's Folder\GitHub\Repositories\CSVtoPRN_OOP\obj\Debug\net5.0\CSVtoPRN_OOP.pdb
+E:\Wrenpo\Wrenpo's Folder\GitHub\Repositories\CSVtoPRN_OOP\obj\Debug\net5.0\CSVtoPRN_OOP.genruntimeconfig.cache
