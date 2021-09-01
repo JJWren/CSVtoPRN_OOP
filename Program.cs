@@ -1,343 +1,339 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 using System.Globalization;
 using System.Collections.Generic;
 
+/*
+ TITLE:	 Money Orders CSV to PRN File Converter
+ AUTHOR: Joshua Wren
+ DESCR:	 This program's purpose is to take moneyorders.csv and convert it into gltrnimprt.prn.
+		 The executable will be located directly in the folder the user keeps the csv file in.
+		 The program includes logic for calculating some totaled values for each store per day for both total money orders and specific data relevant for alcohol money order totals.
+ */
+
 namespace CSVtoPRN_OOP
 {
-    class Program
-    {
-        static void Main(string[] args)
-        {
-            // Get the user input filepath - put into string for splitting
-            Console.WriteLine("Please enter in a valid directory for CSV import...\n\nExample - 'E:\\Wrenpo\\My Documents\\GitHub\\Repositories\\CSVtoPRN_OOP'): \n");
-            string CSVDirectory = Console.ReadLine();
-            if (CSVDirectory.Length - 1 != '\\')
+	class Program
+	{
+		static void Main(string[] args)
+		{
+            string fileRoot = "C:\\westernunion";
+            string csvFilename = "moneyorders.csv";
+			//string csvFilename = args[0];	//Argument located in shortcut exe (Example: "moneyorders.csv")
+			string csvFullPath = Path.Combine(fileRoot, csvFilename);
+
+            try
             {
-                CSVDirectory += '\\';
-            }
-            Console.WriteLine("Please enter the filename you wish to import...\nExample - 'good import.txt':\n");
-            string CSVFilename = Console.ReadLine();
-            string CSVFullPath = CSVDirectory + CSVFilename;
+                //Break the string down and output contents
+				List<string> csvAllLines = File.ReadAllLines(csvFullPath).ToList();
 
-            // Display string contents
-            Console.WriteLine($"CSV file: {CSVFullPath}");
+				//List of all PurchaseOrder instances
+				List<PurchaseOrder> PurchaseOrders = new List<PurchaseOrder>();
 
-            // Break the string down and output contents
-            List<string> CSVAllLines = System.IO.File.ReadAllLines(CSVFullPath).ToList();
+				foreach (string row in csvAllLines)
+				{
+                    //Take row, put in list based on ','
+					List<string> csvRowAsList = row.Split(',',StringSplitOptions.RemoveEmptyEntries).ToList();
 
-            // Lists for grouping each column into separate lists, maintaining order
-            List<string> StoreNum = new List<string>();
-            List<string> Date = new List<string>();
-            List<string> Price = new List<string>();
-            List<string> Fee = new List<string>();
-            List<string> ID = new List<string>();
-            List<PurchaseOrder> PurchaseOrders = new List<PurchaseOrder>();
+					//Skip making list for ENDOFDATA rows
+					if (csvRowAsList[csvRowAsList.Count() - 2] == "ENDOFDATA")  // - 2 because last column is spaces ("    ") string on each row
+					{
+						continue;
+					}
+					else
+					{
+                        //Input each row's items into category maintaining idx integrity - excluding irrel. items
+						//Create PurchaseOrder instances based on row csvRowAsList indices
+						PurchaseOrder PO = new PurchaseOrder();
+						for (int i = 0; i < csvRowAsList.Count(); i++)
+						{
 
-            foreach (string row in CSVAllLines)
-            {
-                // Take row, put in list based on ','
-                List<string> CSVRowAsList = row.Split(',').ToList();
-                if (CSVRowAsList[CSVRowAsList.Count() - 2] == "ENDOFDATA")  // - 2 because last column is spaces ("    ") string on each row
-                {
-                    // Skip making list for ENDOFDATA rows
-                    continue;
-                }
-                else
-                {
-                    // Trim index with spaces string
-                    if (CSVRowAsList.Any())   // prevent IndexOutOfRangeException for empty list
-                    {
-                        CSVRowAsList.RemoveAt(CSVRowAsList.Count - 1);
+							switch (i)
+							{
+								case 3:
+									var storeNum = Int32.Parse((csvRowAsList[i]));
+									PO.StoreNum = storeNum;
+									break;
+								case 4:
+									PO.Date = csvRowAsList[i];
+									break;
+								case 5:
+									var price = decimal.Parse(csvRowAsList[i]);
+									PO.Price = price;
+									break;
+								case 6:
+									var fee = decimal.Parse(csvRowAsList[i]);
+									PO.Fee -= fee;
+									PO.FinalRate = PO.Fee + .14m;
+									break;
+								case 8:
+									PO.ID = csvRowAsList[i];
+									break;
+							}
+						}
+						if (PO.Price > 0)
+						{
+							if (PO.Fee == 0)
+							{
+								PO.IsAlcoholic = true;
+							}
+							PurchaseOrders.Add(PO);
+						}
                     }
+				}
 
-                    // // TROUBLESHOOTING: Print List
-                    // PrintFormattedList(CSVRowAsList);
+				//Getting Unique Dates and Unique Store Numbers
+				List<int> uniqueDates = new List<int>();
+				List<int> uniqueStores = new List<int>();
 
-                    // Input each row's items into category maintaining idx integrity - excluding irrel. items
-                    for (int i = 0; i < CSVRowAsList.Count(); i++)
+				foreach (PurchaseOrder Order in PurchaseOrders)
+				{
+					if (!uniqueDates.Contains(Int32.Parse(Order.Date)))
+					{
+						uniqueDates.Add(Int32.Parse(Order.Date));
+					}
+					if (!uniqueStores.Contains(Order.StoreNum))
+					{
+						uniqueStores.Add(Order.StoreNum);
+					}
+				}
+
+				//Order the dates from most recent to oldest
+				uniqueDates.Sort();
+				uniqueDates.Reverse();
+
+				//Final String for putting into new file:
+				string finalString = "";
+
+				//Match Unique Dates to PO for grouping
+				foreach (int date in uniqueDates)
+				{
+					//Date as string
+					string strDate = date.ToString();
+
+					//Logic for this date where a given store has POs
+					List<Store> storesWithAlcSales = new List<Store>();
+					List<Store> storesWithAnySales = new List<Store>();
+					foreach (int store in uniqueStores)
+					{
+						//Stores that have any orders on this date
+						List<PurchaseOrder> allStoreOrdersForDate = new List<PurchaseOrder>();
+						//Stores that have alcoholic orders on this date
+						List<PurchaseOrder> allAlcStoreOrdersForDate = new List<PurchaseOrder>();
+						foreach (PurchaseOrder Order in PurchaseOrders)
+						{
+							if (Order.StoreNum == store && Order.Date == strDate)
+							{
+								allStoreOrdersForDate.Add(Order);
+								if (Order.IsAlcoholic)
+								{
+									allAlcStoreOrdersForDate.Add(Order);
+								}
+							}
+						}
+						if (allStoreOrdersForDate.Count() > 0)
+						{
+							Store StoreWithSales = new Store(store, allStoreOrdersForDate, allAlcStoreOrdersForDate);
+							storesWithAnySales.Add(StoreWithSales);
+							if (allAlcStoreOrdersForDate.Count() > 0)
+							{
+								storesWithAlcSales.Add(StoreWithSales);
+							}
+						}
+					}
+
+					//START OF GATHERING FINAL STRING TO PUT IN NEW FILE
+					if (storesWithAnySales.Count() > 0) //Are there stores with sales
+					{
+						if (storesWithAlcSales.Count() > 0) //Are there stores with alcohol sales
+						{
+							finalString += SectionHeader(strDate, true);
+							decimal dateAlcTotal = 0;
+
+							foreach (Store store in storesWithAlcSales)
+							{
+								decimal alcSaleTotal = 0;
+
+								foreach (PurchaseOrder Order in store.AlcPOs)
+								{
+									alcSaleTotal += Order.Price;
+									dateAlcTotal -= Order.Price;
+
+									var formatAlcSaleTotal = String.Format("FA:{0, 5} {1, 4} {2, 4} {3, 4} {4, 15}\r\n", 1, store.StoreNum, 99, 2153, Order.Price);
+									finalString += formatAlcSaleTotal;
+								}
+							}
+
+							var formatDateAlcTotal = String.Format("FA:{0, 5} {1, 4} {2, 4} {3, 4} {4, 15}\r\nEND:\r\n", 1, 90, 99, 2146, dateAlcTotal);
+							finalString += formatDateAlcTotal;
+						}
+
+						finalString += SectionHeader(strDate, false);
+
+						var allStoreSums = 0m;
+
+						foreach (Store StoreInst in storesWithAnySales)
+						{
+							var sumOfOrderFR = 0m;
+
+							foreach (PurchaseOrder Order in StoreInst.POs)
+							{
+								sumOfOrderFR += Order.FinalRate;
+							}
+
+							var formatStoreSum = String.Format("FA:{0, 5} {1, 4} {2, 4} {3, 4} {4, 15}\r\n", 1, StoreInst.StoreNum, 99, 4520, sumOfOrderFR);
+							finalString += formatStoreSum;
+							allStoreSums -= sumOfOrderFR;
+						}
+
+						var formatAllStoreSum = String.Format("FA:{0, 5} {1, 4} {2, 4} {3, 4} {4, 15}\r\nEND:\r\n", 1, 90, 99, 2146, allStoreSums);
+						finalString += formatAllStoreSum;
+					}
+					//END OF FINAL STRING COMBINATION
+				}
+
+				//Create new prn file from converted string
+				//Formatted name
+				string newFilePath = $"{fileRoot}\\gltrnimprt.prn";
+                //If file exists, delete and replace (for new creation date)
+                try
+                {
+					if (File.Exists(newFilePath))
                     {
-                        switch (i)
-                        {
-                            case 3:
-                                StoreNum.Add(CSVRowAsList[i].TrimStart(new char[] { '0' }));
-                                break;
-                            case 4:
-                                Date.Add(CSVRowAsList[i]);
-                                break;
-                            case 5:
-                                Price.Add(CSVRowAsList[i].TrimStart(new char[] { '0' }));
-                                break;
-                            case 6:
-                                Fee.Add(CSVRowAsList[i].TrimStart(new char[] { '0' }));
-                                break;
-                            case 8:
-                                ID.Add(CSVRowAsList[i]);
-                                break;
-                        }
-                    }
-                }
-            }
-
-            // Create List of Orders (class)
-            for (int i = 0; i < StoreNum.Count(); i++)
-            {
-                int storenum = Int32.Parse((StoreNum[i]));
-                double price = double.Parse(Price[i]);
-                double fee = double.Parse(Fee[i]);
-
-                if (price > 0)
+						File.Delete(newFilePath);
+					}
+					//Create the file and use the finalString for the text
+					using (StreamWriter sw = File.CreateText(newFilePath))
+					{
+						sw.WriteLine($"{finalString}");
+					}
+				}
+				catch (IOException e)
                 {
-                    // PurchaseOrder(string id, string date, double price, double fee)
-                    PurchaseOrder order = new PurchaseOrder(ID[i], Date[i], storenum, price, fee);
-                    PurchaseOrders.Add(order);
-                }
-            }
+					var root = AppDomain.CurrentDomain.BaseDirectory;
+					var errorTextFile = $"{root}\\ErrorsLog.txt";
+					var uniqueErrorFile = GetUniqueFilename(errorTextFile);
 
-            // // TROUBLESHOOTING: Checking ListOfOrder data
-            // foreach (PurchaseOrder order in PurchaseOrders)
-            // {
-            //     CultureInfo provider = CultureInfo.InvariantCulture;
-            //     string fDate = DateTime.ParseExact(order.Date, "yyMMdd", provider).ToString("MM/dd/yy");
-            //     // testing to make sure orders are in list of orders
-            //     Console.WriteLine($"ID: {order.ID}\tDate: {fDate}\tStoreNum: {order.StoreNum}\tPrice: {order.Price}\tFee: {order.Fee}\tAlcoholic?: {order.IsAlcoholic.ToString()}");
-            // }
+					var logText = $"The following error occurred:\n\n{e}";
 
-            // Getting Unique Dates and Unique Store Numbers
-            List<int> UniqueDates = new List<int>();
-            List<int> UniqueStores = new List<int>();
+					Console.WriteLine($"\n\nThe following error occurred:\n\n{e}");
 
-            foreach (PurchaseOrder order in PurchaseOrders)
+					using (StreamWriter sw = File.CreateText(uniqueErrorFile))
+					{
+						sw.WriteLine($"{logText}");
+					}
+				}
+	
+			}
+            catch (Exception ex)
             {
-                if (!UniqueDates.Contains(Int32.Parse(order.Date)))
-                {
-                    UniqueDates.Add(Int32.Parse(order.Date));
-                }
-                if (!UniqueStores.Contains(order.StoreNum))
-                {
-                    UniqueStores.Add(order.StoreNum);
-                }
-            }
-            // Order the dates from most recent to oldest
-            UniqueDates.Sort();
-            UniqueDates.Reverse();
+				fileRoot = AppDomain.CurrentDomain.BaseDirectory;
+				var errorTextFile = $"{fileRoot}\\ErrorsLog.txt";
+				var uniqueErrorFile = GetUniqueFilename(errorTextFile);
 
-            // // TROUBLESHOOTING: Check order of dates
-            // foreach (int date in UniqueDates)
-            // {
-            //     Console.WriteLine(date);
-            // }
+				var logText = $"The following error occurred:\n\n{ex}";
 
-            // Final String for putting into new file:
-            string FinalString = "";
+				Console.WriteLine($"\n\nThe following error occurred:\n\n{ex}");
 
-            // Match Unique Dates to PO for grouping
-            foreach (int date in UniqueDates)
-            {
-                // date as string
-                string StrDate = date.ToString();
+				using (StreamWriter sw = File.CreateText(uniqueErrorFile))
+				{
+					sw.WriteLine($"{logText}");
+				}
+			}
+		}
 
-                // Query for this date where a given store has POs
-                List<Store> StoresWithAlcSales = new List<Store>();
-                List<Store> StoresWithAnySales = new List<Store>();
-                foreach (int store in UniqueStores)
-                {
-                    List<PurchaseOrder> AllStoreOrdersForDate = new List<PurchaseOrder>();
-                    List<PurchaseOrder> AllAlcStoreOrdersForDate = new List<PurchaseOrder>();
-                    foreach (PurchaseOrder po in PurchaseOrders)
-                    {
-                        if (po.StoreNum == store && po.Date == StrDate)
-                        {
-                            AllStoreOrdersForDate.Add(po);
-                            if (po.IsAlcoholic)
-                            {
-                                AllAlcStoreOrdersForDate.Add(po);
-                            }
-                        }
-                    }
-                    if (AllStoreOrdersForDate.Count() > 0)
-                    {
-                        Store StoreWithSales = new Store(store, AllStoreOrdersForDate, AllAlcStoreOrdersForDate);
-                        StoresWithAnySales.Add(StoreWithSales);
-                        if (AllAlcStoreOrdersForDate.Count() > 0)
-                        {
-                            StoresWithAlcSales.Add(StoreWithSales);
-                        }
-                    }
-                }
+		//Define other methods/functions here
+		static string SectionHeader(string date, bool alcohol)
+		{
+			CultureInfo provider = CultureInfo.InvariantCulture;
+			string formatDate = DateTime.ParseExact(date, "yyMMdd", provider).ToString("MM/dd/yy");
+			string header = $"0001\r\n0001\r\n0090\r\nJE\r\n{formatDate}\r\n";
+			if (alcohol == true)
+			{
+				header += $"APPLY BEER & WINE P.O.\r\nN\r\n  0\r\n";
+			}
+			else
+			{
+				header += $"APPLY MONEY ORDER COMMISION\r\nN\r\n  0\r\n";
+			}
+			return header;
+		}
 
-                // START OF GATHERING FINAL STRING TO PUT IN NEW FILE
-                if (StoresWithAnySales.Count() > 0)
-                {
-                    if (StoresWithAlcSales.Count() > 0)
-                    {
-                        FinalString += SectionHeader(StrDate, true);
-                        double DateAlcTotal = 0;
-                        foreach (Store store in StoresWithAlcSales)
-                        {
-                            double AlcSaleTotal = 0;
-                            foreach (PurchaseOrder po in store.AlcPOs)
-                            {
-                                AlcSaleTotal += po.Price;
-                                DateAlcTotal -= po.Price;
-                            }
-                            FinalString += $"FA:\t1\t{store.StoreNum}\t99\t2153\t{AlcSaleTotal}\n";
-                        }
-                        FinalString += $"FA:\t1\t90\t99\t2146\t{DateAlcTotal}\nEND:\n";
-                    }
-                    FinalString += SectionHeader(StrDate, false);
-                    // These values are constant - as far as I am aware
-                    double AlcVal = 0.14;
-                    double OtherVal = -0.85;
-                    double AllStoreSums = 0;
-                    foreach (Store store in StoresWithAnySales)
-                    {
-                        int SumOfAlcPOs = 0;
-                        int SumOfOtherPOs = 0;
-                        foreach (PurchaseOrder po in store.POs)
-                        {
-                            if (po.IsAlcoholic)
-                            {
-                                SumOfAlcPOs += 1;
-                            }
-                            else
-                            {
-                                SumOfOtherPOs += 1;
-                            }
-                        }
-                        double AlcSumTimesAlcVal = Math.Round((SumOfAlcPOs * AlcVal), 2, MidpointRounding.AwayFromZero);
-                        double OtherSumTimesOtherVal = Math.Round((SumOfOtherPOs * OtherVal), 2, MidpointRounding.AwayFromZero);
-                        double TotalSum = AlcSumTimesAlcVal + Math.Round(OtherSumTimesOtherVal, 2, MidpointRounding.AwayFromZero);
-                        FinalString += $"FA:\t1\t{store.StoreNum}\t99\t4520\t{TotalSum}\n";
-                        AllStoreSums += TotalSum;
-                    }
-                    FinalString += $"FA:\t1\t90\t99\t2146\t{AllStoreSums}\nEND:\n";
-                }
-                // END OF FINAL STRING COMBINATION
-            }
+		static string GetUniqueFilename(string fullPath)
+		{
+			if (!Path.IsPathRooted(fullPath))
+				fullPath = Path.GetFullPath(fullPath);
+			if (File.Exists(fullPath))
+			{
+				String filename = Path.GetFileName(fullPath);
+				String path = fullPath.Substring(0, fullPath.Length - filename.Length);
+				String filenameWOExt = Path.GetFileNameWithoutExtension(fullPath);
+				String ext = Path.GetExtension(fullPath);
+				int n = 1;
+				do
+				{
+					fullPath = Path.Combine(path, String.Format("{0} ({1}){2}", filenameWOExt, (n++), ext));
+				}
+				while (File.Exists(fullPath));
+			}
+			return fullPath;
+		}
 
-            // REIMPLEMENTED THE FILE CREATION
-            // string CurrDT = DateTime.Now.ToString("yyyyMMdd");
+		//Define other classes here
+		class PurchaseOrder
+		{
+			public string ID { get; set; }
+			public string Date { get; set; }
+			public int StoreNum { get; set; }
+			public decimal Price { get; set; }
+			public decimal Fee { get; set; }
+			public decimal FinalRate { get; set; }
+			public bool IsAlcoholic { get; set; }
 
-            // string NewFilePath = $"{CSVDirectory}ConvertedCSV{CurrDT}.prn";
-            // if (!File.Exists(NewFilePath))
-            // {
-            //     // Create a file to write to.
-            //     using (StreamWriter sw = File.CreateText(NewFilePath))
-            //     {
-            //         sw.WriteLine($"{FinalString}");
-            //     }
-            // }
+			public PurchaseOrder()
+			{
+				this.ID = "0";
+				this.Date = "000000";
+				this.StoreNum = 0;
+				this.Price = 0m;
+				this.Fee = 0m;
+				this.FinalRate = 0m;
+				this.IsAlcoholic = false;
+			}
 
-            // Create new prn file from converted string
-            // Formatted name
-            string NewFilePath = $"{CSVDirectory}ConvertedCSV.prn";
-            // Fixes formatted name if the file already exists >> (Directory\ConvertCSV.prn will become Directory\ConvertedCSV (1).prn, etc)
-            string FinalFilePath = GetUniqueFilename(NewFilePath);
-            // Create the file and use the FinalString for the text
-            using (StreamWriter sw = File.CreateText(FinalFilePath))
-            {
-                sw.WriteLine($"{FinalString}");
-            }
-            // END OF MAIN
-        }
+			public PurchaseOrder(string id, string date, int storeNum, decimal price, decimal fee)
+			{
+				this.ID = id;
+				this.Date = date;
+				this.StoreNum = storeNum;
+				this.Price = price;
+				this.Fee = fee;
+				this.FinalRate = 0m;
 
-        static void PrintFormattedList(List<string> list)
-        {
-            for (int i = 0; i < list.Count(); i++)
-            {
-                if (i == 0)
-                {
-                    Console.Write($"[ {list[i]},");
-                }
-                else if (i < list.Count() - 1)
-                {
-                    Console.Write($" {list[i]},");
-                }
-                else
-                {
-                    Console.WriteLine($" {list[i]}]");
-                }
-            }
-        }
+				if (this.Price > 0 && fee == 0)
+				{
+					this.IsAlcoholic = true;
+				}
+				else
+				{
+					this.IsAlcoholic = false;
+				}
+			}
+		}
 
-        static string SectionHeader(string date, bool alcohol)
-        {
-            CultureInfo provider = CultureInfo.InvariantCulture;
-            string FormatDate = DateTime.ParseExact(date, "yyMMdd", provider).ToString("MM/dd/yy");
-            string Header = $"0001\n0001\n0090\nJE\n{FormatDate}\n";
-            if (alcohol == true)
-            {
-                Header += $"APPLY BEER & WINE P.O.\nN\n  0\n";
-            }
-            else
-            {
-                Header += $"APPLY MONEY ORDER COMMISION\nN\n  0\n";
-            }
-            return Header;
-        }
+		class Store
+		{
+			public int StoreNum;
+			public List<PurchaseOrder> POs = new List<PurchaseOrder>();
+			public List<PurchaseOrder> AlcPOs = new List<PurchaseOrder>();
 
-        static string GetUniqueFilename(string fullPath)
-        {
-            if (!Path.IsPathRooted(fullPath))
-                fullPath = Path.GetFullPath(fullPath);
-            if (File.Exists(fullPath))
-            {
-                String filename = Path.GetFileName(fullPath);
-                String path = fullPath.Substring(0, fullPath.Length - filename.Length);
-                String filenameWOExt = Path.GetFileNameWithoutExtension(fullPath);
-                String ext = Path.GetExtension(fullPath);
-                int n = 1;
-                do
-                {
-                    fullPath = Path.Combine(path, String.Format("{0} ({1}){2}", filenameWOExt, (n++), ext));
-                }
-                while (File.Exists(fullPath));
-            }
-            return fullPath;
-        }
-    }
-
-    class PurchaseOrder
-    {
-        public string ID;
-        public string Date;
-        public int StoreNum;
-        public double Price;
-        public double Fee;
-        public bool IsAlcoholic;
-
-        public PurchaseOrder(string id, string date, int storenum, double price, double fee)
-        {
-            this.ID = id;
-            this.Date = date;
-            this.StoreNum = storenum;
-            this.Price = price;
-            this.Fee = fee;
-
-            if (this.Price > 0 && fee == 0)
-            {
-                this.IsAlcoholic = true;
-            }
-            else
-            {
-                this.IsAlcoholic = false;
-            }
-        }
-    }
-
-    class Store
-    {
-        public int StoreNum;
-        public List<PurchaseOrder> POs = new List<PurchaseOrder>();
-        public List<PurchaseOrder> AlcPOs = new List<PurchaseOrder>();
-
-        public Store(int storenum, List<PurchaseOrder> purchaseorders, List<PurchaseOrder> alcpurchaseorders)
-        {
-            this.StoreNum = storenum;
-            this.POs.AddRange(purchaseorders);
-            this.AlcPOs.AddRange(alcpurchaseorders);
-        }
-    }
+			public Store(int storeNum, List<PurchaseOrder> purchaseorders, List<PurchaseOrder> alcpurchaseorders)
+			{
+				this.StoreNum = storeNum;
+				this.POs.AddRange(purchaseorders);
+				this.AlcPOs.AddRange(alcpurchaseorders);
+			}
+		}
+	}
 }
